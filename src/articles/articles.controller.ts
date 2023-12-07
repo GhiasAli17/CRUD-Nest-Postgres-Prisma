@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException, ParseIntPipe } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -12,42 +12,46 @@ export class ArticlesController {
 
   @ApiCreatedResponse({type:ArticleEntity})
   @Post()
-  create(@Body() createArticleDto: CreateArticleDto) {
-    return this.articlesService.create(createArticleDto);
+  async create(@Body() createArticleDto: CreateArticleDto) {
+    return new ArticleEntity(
+      await this.articlesService.create(createArticleDto),
+    );
   }
 
   @Get()
   @ApiOkResponse({type:ArticleEntity,isArray:true})
-  findAll() {
-    return this.articlesService.findAll();
+  async findAll() {
+    const articles = await this.articlesService.findAll();
+    return articles.map((article) => new ArticleEntity(article));
   }
 
   @Get('drafts')
   @ApiOkResponse({type:ArticleEntity,isArray:true})
-  getDrafts(){
-    return this.articlesService.getDrafts()
+  async getDrafts() {
+    const drafts = await this.articlesService.getDrafts();
+    return drafts.map((draft) => new ArticleEntity(draft));
   }
 
-  @ApiOkResponse({type:ArticleEntity})
   @Get(':id')
- async findOne(@Param('id') id: string) {
-    const article = await this.articlesService.findOne(+id);
-
-  if (!article) {
-    throw new NotFoundException(`Could not find article with ${id}.`);
-  }
-  return article;
+  @ApiOkResponse({ type: ArticleEntity })
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return new ArticleEntity(await this.articlesService.findOne(id));
   }
 
   @ApiOkResponse({type:ArticleEntity})
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
-    return this.articlesService.update(+id, updateArticleDto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateArticleDto: UpdateArticleDto,
+  ) {
+    return new ArticleEntity(
+      await this.articlesService.update(id, updateArticleDto),
+    );
   }
 
   @ApiOkResponse({type:ArticleEntity})
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.articlesService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return new ArticleEntity(await this.articlesService.remove(id));
   }
 }
